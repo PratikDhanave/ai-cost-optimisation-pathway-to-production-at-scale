@@ -14,7 +14,7 @@ here replaces reading the recipe.
 import pathlib, re, subprocess, sys
 
 HERE  = pathlib.Path(__file__).resolve().parent
-FILES = sorted(p for p in HERE.glob("[0-9][0-9]_*.py"))
+FILES = sorted(p for p in (HERE / "recipes").glob("[0-9][0-9]_*.py"))
 TOOLS = sorted(p for p in (HERE / "tools").glob("*.py") if not p.name.startswith("_"))
 RESULT = re.compile(r"RESULT: TOKENS ([-+][\d.]+)%\s+\|\s+COST ([-+][\d.]+)%"
                     r"(?:\s+\|\s+SAVES (\S+)/mo)?")

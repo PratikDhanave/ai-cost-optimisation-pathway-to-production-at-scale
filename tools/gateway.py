@@ -27,7 +27,7 @@ TTLs, idempotent features only, never user-specific results.
 import argparse, hashlib, pathlib, sys, time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 import prices as P
 from _harness import count, money
 from meter import Meter

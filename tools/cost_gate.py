@@ -26,7 +26,7 @@ shape of the failure actually worth blocking.
 """
 import argparse, json, pathlib, sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 from _harness import count, COUNTER
 import prices as P
 

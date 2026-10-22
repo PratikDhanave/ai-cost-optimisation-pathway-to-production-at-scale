@@ -19,7 +19,7 @@ a guess about your architecture is not an estimate.
 import argparse, csv, pathlib, sys
 from collections import defaultdict
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 from _harness import money
 import prices as P
 

@@ -36,7 +36,7 @@ share of the gain.
 """
 import argparse, pathlib, sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 from _harness import money, pct
 import models as M
 

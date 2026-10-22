@@ -33,7 +33,7 @@ and the report gives you both.
 import argparse, csv, pathlib, statistics, sys, time
 from contextlib import contextmanager
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 import prices as P
 from _harness import money
 

@@ -22,7 +22,7 @@ prompt to go and look, not a proof.
 """
 import argparse, pathlib, re, sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "recipes"))
 from _harness import count, money
 import prices as P
 
