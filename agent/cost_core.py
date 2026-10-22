@@ -205,6 +205,12 @@ class ToolTracker:
     use and names the ones that have earned removal.
     """
     unused_after: int = 5
+    # Tools that must survive however quiet they are. A reporting or safety
+    # tool is exactly the kind that goes unused for a long time and is needed
+    # precisely when it is finally called -- pruning it is how a cost plugin
+    # ends up unable to report its own cost, which is what happened the first
+    # time this ran in the dev UI.
+    never_prune: frozenset = frozenset()
     _turns: int = 0
     _last_used: dict = field(default_factory=dict)
     _known: set = field(default_factory=set)
@@ -236,7 +242,8 @@ class ToolTracker:
         touched -- which is where the fixed per-turn tax actually sits.
         """
         return [n for n in sorted(self._known)
-                if self._last_used.get(n) is None
+                if n not in self.never_prune
+                and self._last_used.get(n) is None
                 and self._turns >= self.unused_after]
 
 

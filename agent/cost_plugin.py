@@ -76,6 +76,7 @@ def _drop_declarations(llm_request, drop: set) -> list:
 class CostPlugin:
     def __init__(self, *, budget_usd: float = 0.0, cheap_model: str | None = None,
                  prune_unused_after: int = 0, rates: dict | None = None,
+                 never_prune=(),
                  stop_message: str = "Budget reached for this session."):
         """All three mechanisms are OFF unless configured.
 
@@ -89,7 +90,8 @@ class CostPlugin:
         self.rates = rates
         self.stop_message = stop_message
         self.prune_enabled = prune_unused_after > 0
-        self.tracker = ToolTracker(unused_after=prune_unused_after or 10 ** 9)
+        self.tracker = ToolTracker(unused_after=prune_unused_after or 10 ** 9,
+                                   never_prune=frozenset(never_prune))
         self.turns = 0
         self.pruned: list = []
         self.downgrades = 0

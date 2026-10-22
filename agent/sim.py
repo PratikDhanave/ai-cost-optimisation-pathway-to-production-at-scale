@@ -97,9 +97,19 @@ class ScriptedLlm(BaseLlm):
             cached_content_token_count=cached,
         )
 
-        # The agent calls one tool on the first two turns and then answers in
-        # prose, which is what leaves the other four tools unused.
-        if n <= 2:
+        # Asking about cost calls the status tool, so the plugin's own report
+        # renders inside the chat. Everything else: a tool call for the first
+        # two turns, then prose -- which is what leaves four tools unused.
+        last = ""
+        for c in reversed(llm_request.contents or []):
+            if getattr(c, "role", None) == "user" and c.parts:
+                last = " ".join(p.text or "" for p in c.parts).lower()
+                break
+        if ("cost" in last or "spend" in last or "status" in last) and \
+                "cost_status" in _declaration_names(llm_request):
+            part = types.Part(function_call=types.FunctionCall(
+                name="cost_status", args={}))
+        elif n <= 2:
             part = types.Part(function_call=types.FunctionCall(
                 name="search_docs", args={"query": "rate limits"}))
         else:

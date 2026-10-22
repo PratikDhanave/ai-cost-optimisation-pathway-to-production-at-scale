@@ -135,6 +135,15 @@ class TestToolPruning(unittest.TestCase):
         self.assertEqual(t.prunable(), ["never_used"])
 
 
+    def test_a_never_prune_tool_survives_however_quiet(self):
+        """The dev-UI run pruned the plugin's own cost_status tool."""
+        t = ToolTracker(unused_after=2, never_prune=frozenset({"cost_status"}))
+        t.observe_tools(["cost_status", "other"])
+        for _ in range(50):
+            t.end_turn()
+        self.assertEqual(t.prunable(), ["other"])
+
+
 class TestBudget(unittest.TestCase):
     def test_thresholds_in_order(self):
         b = Budget(limit_usd=1.0)
