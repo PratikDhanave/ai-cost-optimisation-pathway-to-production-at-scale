@@ -130,4 +130,5 @@ the only one that composes levers against a single base.
 
 ## Licence
 
-MIT. Copyright (c) 2026 ClearRoute. See [LICENSE](LICENSE).
+Copyright (c) 2026 ClearRoute. All rights reserved. Proprietary; no licence is
+granted. See [LICENSE](LICENSE).
