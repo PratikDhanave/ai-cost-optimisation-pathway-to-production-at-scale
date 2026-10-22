@@ -222,19 +222,22 @@ class ToolTracker:
         self._turns += 1
 
     def prunable(self) -> list:
-        """Tools unused for `unused_after` turns, oldest-idle first.
+        """Tools NEVER called in this session, once enough turns have passed.
 
-        A tool that has never been called is only prunable once we have seen
-        enough turns to say so -- otherwise the first turn of every session
-        would prune everything before the agent had a chance to use anything.
+        A tool that has been called even once is never pruned, however quiet it
+        has gone since. An earlier version pruned on idle time alone and the
+        end-to-end run caught what that does: the agent used `search_docs` for
+        two turns, answered in prose for three more, and the plugin removed the
+        only tool it had ever needed. A tool the model has reached for is
+        evidence the task can require it; silence afterwards is not evidence
+        that it cannot.
+
+        That leaves the genuinely safe case -- declarations loaded and never
+        touched -- which is where the fixed per-turn tax actually sits.
         """
-        out = []
-        for n in sorted(self._known):
-            last = self._last_used.get(n)
-            idle = self._turns if last is None else self._turns - last
-            if idle >= self.unused_after:
-                out.append((n, idle))
-        return [n for n, _ in sorted(out, key=lambda t: -t[1])]
+        return [n for n in sorted(self._known)
+                if self._last_used.get(n) is None
+                and self._turns >= self.unused_after]
 
 
 # --- budget -----------------------------------------------------------------

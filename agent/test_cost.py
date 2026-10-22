@@ -124,6 +124,16 @@ class TestToolPruning(unittest.TestCase):
             t.end_turn()
         self.assertEqual(t.prunable(), [])
 
+    def test_a_tool_used_once_long_ago_is_still_never_pruned(self):
+        """The bug the end-to-end run caught: idle-time pruning removed the
+        only tool the agent had ever used, because it went quiet for a while."""
+        t = ToolTracker(unused_after=3)
+        t.observe_tools(["used_once", "never_used"])
+        t.record_call("used_once")
+        for _ in range(50):
+            t.end_turn()
+        self.assertEqual(t.prunable(), ["never_used"])
+
 
 class TestBudget(unittest.TestCase):
     def test_thresholds_in_order(self):
