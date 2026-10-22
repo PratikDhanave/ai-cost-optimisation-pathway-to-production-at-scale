@@ -133,6 +133,35 @@ class TestReasoningTokens(unittest.TestCase):
                            price("gemini-3.8-flash", Usage(87, 7)).usd * 5)
 
 
+class TestAudioModality(unittest.TestCase):
+    """Audio is billed per token at its own rate, and the payload says so."""
+
+    LIVE_TTS = {"promptTokenCount": 9, "candidatesTokenCount": 72,
+                "totalTokenCount": 81,
+                "promptTokensDetails": [{"modality": "TEXT", "tokenCount": 9}],
+                "candidatesTokensDetails": [{"modality": "AUDIO", "tokenCount": 72}]}
+
+    def test_camelcase_rest_payloads_are_read(self):
+        """The SDK uses snake_case and the REST API camelCase; both must work."""
+        u = read_usage(self.LIVE_TTS)
+        self.assertIsNotNone(u)
+        self.assertEqual((u.in_tokens, u.out_tokens), (9, 72))
+
+    def test_audio_output_is_split_out(self):
+        self.assertEqual(read_usage(self.LIVE_TTS).audio_out, 72)
+
+    def test_audio_costs_more_than_the_same_count_of_text(self):
+        voice = price("gemini-2.5-flash-preview-tts", read_usage(self.LIVE_TTS))
+        text = price("gemini-2.5-flash-preview-tts", Usage(9, 72))
+        self.assertGreater(voice.usd, text.usd)
+
+    def test_an_unregistered_audio_rate_says_so_rather_than_guessing(self):
+        u = Usage(10, 50, audio_out=50)
+        c = price("claude-sonnet-5", u)
+        self.assertTrue(c.known)
+        self.assertIn("priced at the TEXT rate", c.reason)
+
+
 class TestToolPruning(unittest.TestCase):
     def test_nothing_is_pruned_before_enough_turns_have_passed(self):
         t = ToolTracker(unused_after=3)

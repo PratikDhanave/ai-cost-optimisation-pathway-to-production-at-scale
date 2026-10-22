@@ -37,6 +37,12 @@ class Provider:
     cache_min_tokens: int      # below this, nothing caches at all
     batch: float               # multiplier for the async tier, 1.0 if none
     cache_storage_billed: bool # True: time-based storage instead of a write premium
+    # Audio is billed per token like text, at its OWN rate. A live TTS call
+    # returned 9 text tokens in and 72 AUDIO tokens out for 2.9 seconds of
+    # speech -- roughly 25 audio tokens a second, regardless of how few words
+    # it took. Pricing that at the text rate understates voice badly.
+    audio_output_per_m: float = 0.0   # 0 means "not registered, do not guess"
+    audio_input_per_m: float = 0.0
     note: str = ""
 
 
@@ -67,6 +73,7 @@ PROVIDERS: tuple = (
         input_per_m=1.25, output_per_m=5.00,
         cache_read=0.10, cache_write=1.00, cache_min_tokens=1024,
         batch=0.50, cache_storage_billed=True,
+        audio_output_per_m=12.0, audio_input_per_m=3.0,
         note="write at the STANDARD rate; cost moves into time-based storage, "
              "so there is no write premium and no break-even to clear",
     ),
@@ -86,13 +93,46 @@ def resolve(model: str | None):
 
 # --- usage ------------------------------------------------------------------
 
-# Field names differ by SDK and by version. Each tuple is tried in order.
-_IN_KEYS = ("prompt_token_count", "input_tokens", "prompt_tokens", "input_token_count")
-_OUT_KEYS = ("candidates_token_count", "output_tokens", "completion_tokens",
+# Field names differ by SDK, by version, and between the SDK objects
+# (snake_case) and the REST payloads (camelCase). Both spellings are listed
+# because a meter that only reads one silently returns nothing for the other --
+# which is how a cost plugin ends up reporting zero and looking like a saving.
+_IN_KEYS = ("prompt_token_count", "promptTokenCount", "input_tokens",
+            "inputTokens", "prompt_tokens", "promptTokens", "input_token_count")
+_OUT_KEYS = ("candidates_token_count", "candidatesTokenCount", "output_tokens",
+             "outputTokens", "completion_tokens", "completionTokens",
              "output_token_count")
-_CACHED_KEYS = ("cached_content_token_count", "cache_read_input_tokens",
-                "cached_tokens", "cache_read_tokens")
-_TOTAL_KEYS = ("total_token_count", "total_tokens")
+_CACHED_KEYS = ("cached_content_token_count", "cachedContentTokenCount",
+                "cache_read_input_tokens", "cacheReadInputTokens",
+                "cached_tokens", "cachedTokens", "cache_read_tokens")
+_TOTAL_KEYS = ("total_token_count", "totalTokenCount", "total_tokens",
+               "totalTokens")
+_OUT_DETAIL_KEYS = ("candidates_tokens_details", "candidatesTokensDetails",
+                    "output_tokens_details", "completion_tokens_details")
+_IN_DETAIL_KEYS = ("prompt_tokens_details", "promptTokensDetails",
+                   "input_tokens_details")
+
+
+def _modality(obj, keys, want="AUDIO"):
+    """Tokens attributed to one modality, or None when not broken down."""
+    for k in keys:
+        v = getattr(obj, k, None)
+        if v is None and isinstance(obj, dict):
+            v = obj.get(k)
+        if not v:
+            continue
+        total = None
+        for item in v:
+            mod = (getattr(item, "modality", None)
+                   or (item.get("modality") if isinstance(item, dict) else None))
+            cnt = (getattr(item, "token_count", None)
+                   or (item.get("tokenCount") or item.get("token_count")
+                       if isinstance(item, dict) else None))
+            if mod and str(mod).upper().endswith(want) and isinstance(cnt, int):
+                total = (total or 0) + cnt
+        if total is not None:
+            return total
+    return None
 
 
 def _dig(obj, keys):
@@ -118,6 +158,8 @@ class Usage:
     out_tokens: int               # INCLUDING reasoning you were billed for
     cached_in: int | None = None
     hidden_out: int = 0           # the reasoning share, for reporting
+    audio_out: int = 0            # the share of out_tokens that is audio
+    audio_in: int = 0
 
     @property
     def cached_known(self) -> bool:
@@ -150,7 +192,9 @@ def read_usage(usage_metadata) -> Usage | None:
     hidden = max(0, total - i - o) if total else 0
     return Usage(in_tokens=i, out_tokens=o + hidden,
                  cached_in=_dig(usage_metadata, _CACHED_KEYS),
-                 hidden_out=hidden)
+                 hidden_out=hidden,
+                 audio_out=_modality(usage_metadata, _OUT_DETAIL_KEYS) or 0,
+                 audio_in=_modality(usage_metadata, _IN_DETAIL_KEYS) or 0)
 
 
 @dataclass(frozen=True)
@@ -185,12 +229,26 @@ def price(model: str | None, usage: Usage | None, *, batch: bool = False,
 
     cached = usage.cached_in or 0
     uncached = max(0, usage.in_tokens - cached)
-    usd = (uncached / 1e6 * pin
-           + cached / 1e6 * pin * p.cache_read
-           + usage.out_tokens / 1e6 * pout)
-    reason = "" if usage.cached_known else (
+
+    # Audio is split out and billed at its own rate where one is registered.
+    # Where it is not, audio stays on the text rate and the caller is told --
+    # silently pricing speech as text is the mis-estimate this whole file
+    # exists to avoid.
+    a_out = min(usage.audio_out, usage.out_tokens)
+    t_out = usage.out_tokens - a_out
+    audio_note = ""
+    if a_out and p.audio_output_per_m:
+        out_cost = t_out / 1e6 * pout + a_out / 1e6 * p.audio_output_per_m
+    else:
+        out_cost = usage.out_tokens / 1e6 * pout
+        if a_out:
+            audio_note = (f"{a_out:,} audio output token(s) priced at the TEXT "
+                          f"rate: no audio rate registered for {p.name}")
+
+    usd = (uncached / 1e6 * pin + cached / 1e6 * pin * p.cache_read + out_cost)
+    reason = audio_note or ("" if usage.cached_known else (
         "backend did not report cached tokens; billed as fully uncached, so "
-        "this is an UPPER bound")
+        "this is an UPPER bound"))
     return Cost(usd, p.name, reason)
 
 
