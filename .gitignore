@@ -1,3 +1,17 @@
+# Credentials. Nothing here needs a key, but agent/ ships ADK code and a
+# reader may well add one. Excluded up front: a secret removed in a later
+# commit is still in history forever.
+.env
+.env.*
+!.env.example
+.vercel/
+
+# ADK runtime state. `adk web` writes a session database under the agent
+# directory; it is a running server's scratch, not source.
+**/.adk/
+
 __pycache__/
 *.pyc
+.venv/
+**/node_modules/
 .DS_Store
