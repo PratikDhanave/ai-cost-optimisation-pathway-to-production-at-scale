@@ -56,26 +56,44 @@ class Gateway:
     def handle(self, feature, prompt, model="big", batch=False, now=None):
         now = time.time() if now is None else now
 
-        # 1 - response cache, only for features explicitly marked safe
-        if self.cache_ttl and feature in self.cacheable:
-            k = self._key(prompt, model)
-            hit = self._cache.get(k)
-            if hit and now - hit[0] < self.cache_ttl:
-                self.stats["cache_hits"] += 1
-                self.stats["served"] += 1
-                return hit[1], dict(cached=True, model=model, usd=0.0)
+        # 1 - decide the model BEFORE touching the cache. The cache is keyed on
+        #     the model that answers, so the key has to be known first. An
+        #     earlier version looked up under the requested model and stored
+        #     under the effective one, which could never hit; and before that,
+        #     keying both on the request served a downgraded reply to a
+        #     full-price caller as though the frontier model had produced it.
+        # Decided, but NOT yet counted: a request that goes on to be refused,
+        # or served free from cache, was never downgraded. Counting it here
+        # inflated the downgrade stat with calls that never reached a model.
+        effective = model
+        if self.spend >= self.budget * self.downgrade_at and model == "big":
+            effective = "small"
 
-        # 2/4 - budget and hard stop
+        # 2 - response cache, BEFORE the hard stop. A hit spends nothing, and
+        #     the budget exists to cap spend, not to withhold answers that are
+        #     already paid for. Refusing free hits was a regression introduced
+        #     while fixing the cache key; it only ever lost money.
+        if self.cache_ttl and feature in self.cacheable:
+            # The invariant is NEVER SERVE OUTPUT FROM A WORSE MODEL THAN THE
+            # CALLER WOULD HAVE RECEIVED -- not "the same model". A reply the
+            # frontier model produced is fine for a request about to be
+            # downgraded; the reverse is not. Downgrade only ever moves
+            # big -> small, so the requested model is the better of the two
+            # and both keys are acceptable here.
+            for candidate in (effective, model) if model != effective else (effective,):
+                hit = self._cache.get(self._key(prompt, candidate))
+                if hit and now - hit[0] < self.cache_ttl:
+                    self.stats["cache_hits"] += 1
+                    self.stats["served"] += 1
+                    return hit[1], dict(cached=True, model=candidate, usd=0.0)
+
+        # 3 - the hard stop, for anything that would actually cost money
         if self.spend >= self.budget * self.hard_stop_at:
             self.stats["refused"] += 1
             raise Refused(f"daily budget {money(self.budget)} reached")
 
-        # 3 - downgrade
-        effective = model
-        if self.spend >= self.budget * self.downgrade_at and model == "big":
-            effective, _ = "small", self.stats.__setitem__(
-                "downgraded", self.stats["downgraded"] + 1)
-
+        if effective != model:
+            self.stats["downgraded"] += 1          # counted only now it dispatches
         in_tok = count(prompt)
         with self.meter.call(feature=feature, model=effective, batch=batch) as c:
             text, out_tok = self.backend(prompt, effective)
@@ -85,7 +103,7 @@ class Gateway:
         self.stats["served"] += 1
 
         if self.cache_ttl and feature in self.cacheable:
-            self._cache[self._key(prompt, model)] = (now, text)
+            self._cache[self._key(prompt, effective)] = (now, text)
         return text, dict(cached=False, model=effective, usd=usd)
 
 

@@ -19,10 +19,18 @@ LEVERS = ("trunc", "cache", "route", "batch")
 def stack_request(route=False, trunc=False, cache=False, batch=False):
     """Returns (input_tokens_billed, cost) for one request under these levers."""
     history = STACK["truncated"] if trunc else STACK["history"]
-    prefix  = STACK["prefix"] * P.CACHE_READ if cache else STACK["prefix"]
+    prefix  = STACK["prefix"]
     model   = "small" if route else "big"
-    in_tok  = prefix + history
-    return round(in_tok), P.cost(in_tok, STACK["out"], model, batch=batch)
+
+    # TOKENS SENT DO NOT CHANGE WHEN YOU CACHE. An earlier version multiplied
+    # the prefix by CACHE_READ and returned that as the token count, so recipe
+    # 11 reported caching cutting 5.6% of tokens -- contradicting recipe 05 and
+    # the whole point of separating the two columns. The discount belongs in
+    # the price, which is what cost_with_cache is for.
+    in_tok = prefix + history
+    cached = prefix if cache else 0
+    return round(in_tok), P.cost_with_cache(in_tok, STACK["out"], cached,
+                                            model, batch=batch)
 
 
 def stack_all():

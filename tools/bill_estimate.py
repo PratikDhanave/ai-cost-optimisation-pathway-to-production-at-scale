@@ -82,7 +82,10 @@ def analyse(rows, present):
         if "latency_sensitive" in present and str(r["latency_sensitive"]).strip() in ("0", "false", "False"):
             f["batchable"] += spend
         if "prefix_tokens" in present and float(r.get("prefix_tokens") or 0) >= P.CACHE_MIN and not cached:
-            f["cacheable"] += spend
+            # the INPUT portion only. Caching discounts input; crediting the
+            # whole row (output included) overstated this lever's reach, and
+            # output is the larger half on most workloads.
+            f["cacheable"] += P.cost(it, 0, model) * n
         total += spend
     return by_feature, total
 

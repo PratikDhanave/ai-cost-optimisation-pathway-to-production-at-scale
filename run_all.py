@@ -17,6 +17,7 @@ import pathlib, re, subprocess, sys
 HERE  = pathlib.Path(__file__).resolve().parent
 FILES = sorted(p for p in (HERE / "recipes").glob("[0-9][0-9]_*.py"))
 TOOLS = sorted(p for p in (HERE / "tools").glob("*.py") if not p.name.startswith("_"))
+SUITES = sorted((HERE / "tests").glob("test_*.py"))
 RESULT = re.compile(r"RESULT: TOKENS ([-+][\d.]+)%\s+\|\s+COST ([-+][\d.]+)%"
                     r"(?:\s+\|\s+SAVES (\S+)/mo)?")
 
@@ -64,6 +65,17 @@ def main_with(mode):
     return main()
 
 
+def run_suites():
+    """The unit tests. --check runs them; they are the only thing here that
+    checks the ARITHMETIC rather than that a recipe merely executed."""
+    bad = []
+    for p in SUITES:
+        r = subprocess.run([sys.executable, str(p)], capture_output=True, text=True)
+        if r.returncode != 0:
+            bad.append(f"{p.name}: {r.stderr.strip().splitlines()[-1][:160]}")
+    return bad
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "--menu":
@@ -93,6 +105,7 @@ def main():
             print(r.stdout)
 
     failed += run_tools(show=mode not in ("--summary", "--check"))
+    failed += run_suites()
 
     if failed:
         print("FAILED")
@@ -118,7 +131,11 @@ def main():
     print("  Each carries a --demo; cost_gate and prefix_lint are meant for CI.")
     print()
     if mode == "--check":
-        print(f"  CHECK PASSED: {len(rows)} recipes reported, {len(TOOLS)} tool demos ran.")
+        n = sum(1 for p in SUITES
+                for line in [p.read_text()] for _ in [0]) and sum(
+            p.read_text().count("def test_") for p in SUITES)
+        print(f"  CHECK PASSED: {len(rows)} recipes reported, {len(TOOLS)} tool "
+              f"demos ran, {len(SUITES)} suites / {n} assertions passed.")
     return 0
 
 if __name__ == "__main__":

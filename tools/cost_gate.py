@@ -57,15 +57,24 @@ def check(current, baseline, tol_pct, rpd, out=print):
             total_b += b
             continue
         total_b, total_c = total_b + b, total_c + c
-        delta = (c / b - 1) * 100 if b else 0.0
-        if delta > tol_pct:
+        if b == 0:
+            # A template that went from empty to 4,000 tokens used to divide by
+            # zero, fall through to 0.0% and print "ok". Growth from nothing is
+            # the largest growth there is.
+            delta = float("inf") if c > 0 else 0.0
+        else:
+            delta = (c / b - 1) * 100
+        # Inclusive, and epsilon-tolerant: 1030/1000 is 3.0000000000000027 in
+        # binary, so an exactly-at-tolerance change was being blocked.
+        if delta > tol_pct + 1e-9:
             failures.append((n, b, c, delta))
             verdict = f"FAIL (> {tol_pct:g}%)"
         elif delta < -tol_pct:
             verdict = "improved"
         else:
             verdict = "ok"
-        out(f"  {n:34} {b:>9,} {c:>9,} {delta:>+8.1f}%  {verdict}")
+        shown = "  new" if delta == float("inf") else f"{delta:>+8.1f}%"
+        out(f"  {n:34} {b:>9,} {c:>9,} {shown:>9}  {verdict}")
 
     out("")
     if total_b:

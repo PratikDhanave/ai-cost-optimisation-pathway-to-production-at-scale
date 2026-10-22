@@ -114,7 +114,7 @@ SUMMARY -- tokens first, cost second, for all 21 recipes
   Route by difficulty, with a cascad      0.0%    -65.3%            $44,688.00
   Give retrieval a token budget         -81.8%    -72.5%            $48,438.00
   Agent loops, and the max_tokens tr    -46.8%    -38.2%            $13,459.50
-  Compose the levers; stop adding pe    -68.1%    -94.3%           $194,706.00
+  Compose the levers; stop adding pe    -62.5%    -94.3%           $194,706.00
   Self-hosting break-even                 0.0%      0.0%                    --
   Budgets, quotas and circuit breake     -0.0%    -61.6%            $35,343.00
   Committed use and forecasting           0.0%    -60.0%            $38,880.00
@@ -123,10 +123,10 @@ SUMMARY -- tokens first, cost second, for all 21 recipes
   Semantic caching and the wrong-ans    -18.0%    -18.0%             $6,557.18
   Prompt compression and who pays th    -64.5%     -0.3%               $208.80
   Tool schemas and the per-call tax     -85.5%    -80.7%           $130,680.00
-  Retries, timeouts and abandoned st      0.0%     -6.8%             $5,657.71
+  Retries, timeouts and abandoned st     -7.4%     -6.8%             $5,657.71
   Cost per user and the unprofitable      0.0%    -46.9%            $67,767.00
 
-  10 recipes cut ~0% of tokens. That is not a bug: caching, batch, routing,
+  9 recipes cut ~0% of tokens. That is not a bug: caching, batch, routing,
   committed-use rates and self-hosting change what a token COSTS, not the count.
   The monthly figures use different volumes per recipe and DO NOT ADD UP --
   recipe 11 is the only one that composes levers against a single base.

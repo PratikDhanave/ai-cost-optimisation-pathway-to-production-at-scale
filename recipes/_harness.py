@@ -95,8 +95,12 @@ def note(text):
     print()
 
 
+_LAST_TABLE = {}
+
+
 def tokens(rows):
     """rows: [(label, in_tok, out_tok)] -- the FIRST half of every recipe."""
+    _LAST_TABLE.clear()
     print("  TOKENS")
     print(f"  {'':28} {'in':>10} {'out':>10} {'total':>10} {'change':>9}")
     base = None
@@ -107,7 +111,9 @@ def tokens(rows):
         else:
             change = f"{-pct(base, t):+6.1f}%"   # negative = fewer tokens
         print(f"  {label:28} {i:>10,} {o:>10,} {t:>10,} {change:>9}")
+        _LAST_TABLE[label] = t
     print()
+    _LAST_TABLE["__first__"], _LAST_TABLE["__last__"] = base, t
     return base
 
 
@@ -139,7 +145,27 @@ def verdict(text):
 
 
 def headline(token_cut, cost_cut, monthly_saving=None):
-    """One machine-readable line per recipe, for run_all.py to collect."""
+    """One machine-readable line per recipe, for run_all.py to collect.
+
+    GUARDED: a hardcoded token figure that contradicts the recipe's own TOKENS
+    table is a hard error. Nine recipes used to pass a literal 0.0 here. For
+    the price levers that was true by construction, but recipe 20's table
+    showed its tokens doubling while the headline still said 0.0 -- an audit
+    tripled its request size and the printed summary never moved. A number
+    asserted rather than computed is exactly what this set exists to object to.
+    """
+    first, last = _LAST_TABLE.get("__first__"), _LAST_TABLE.get("__last__")
+    if token_cut is None:
+        if first is None:
+            raise ValueError("headline(None, ...) needs a tokens() table above it")
+        token_cut = -pct(first, last)
+    elif first and last and abs(token_cut) < 0.05:
+        measured = -pct(first, last)
+        if abs(measured) >= 0.1:
+            raise AssertionError(
+                f"headline says {token_cut:+.1f}% tokens but this recipe's own "
+                f"TOKENS table shows {measured:+.1f}% "
+                f"({first:,} -> {last:,}). Compute it, or pass None.")
     parts = [f"TOKENS {token_cut:+.1f}%", f"COST {cost_cut:+.1f}%"]
     if monthly_saving is not None:
         parts.append(f"SAVES {money(monthly_saving)}/mo")

@@ -74,6 +74,33 @@ def context_multiplier(in_tok):
     return CONTEXT_MULTIPLIER if in_tok >= CONTEXT_THRESHOLD else 1.0
 
 
+def cost_with_cache(in_tok, out_tok, cached_in_tok=0, model="big", batch=False):
+    """Price one request where part of the input was served from cache.
+
+    Do NOT do this as two cost() calls. Two problems with that, both found by
+    tests: the long-context multiplier is a step function on the TOTAL input,
+    so pricing the uncached and cached halves separately lets a request that is
+    genuinely over the threshold slip under it twice; and pre-multiplying a
+    token count by CACHE_READ to fake a cheaper rate is counting tokens that
+    were never sent.
+    """
+    pin, pout = MODELS[model]
+    if batch:
+        pin, pout = pin * BATCH, pout * BATCH
+    cached = max(0, min(cached_in_tok, in_tok))
+    uncached = in_tok - cached
+    m = context_multiplier(in_tok)          # the step applies to the WHOLE request
+    return (uncached / 1e6 * pin
+            + cached / 1e6 * pin * CACHE_READ
+            + out_tok / 1e6 * pout) * m
+
+
+def cache_saving(cached_in_tok, model="big", batch=False):
+    """What those cache hits were actually worth, at THIS model's rate."""
+    pin = MODELS[model][0] * (BATCH if batch else 1.0)
+    return cached_in_tok / 1e6 * pin * (1 - CACHE_READ)
+
+
 def cost(in_tok, out_tok, model="big", batch=False):
     """Dollars for one request. The only pricing arithmetic in the repo."""
     pin, pout = MODELS[model]

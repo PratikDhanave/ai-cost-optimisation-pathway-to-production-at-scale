@@ -43,7 +43,7 @@ def placeholders(text):
         yield m.start(), name, bool(VOLATILE.search(name))
 
 
-def lint(path, text, rpd, out=print):
+def lint(path, text, rpd, out=print, model_key="big"):
     found = list(placeholders(text))
     total = count(text)
     first_volatile = next(((i, n) for i, n, v in found if v), None)
@@ -97,8 +97,13 @@ def lint(path, text, rpd, out=print):
     else:
         out(f"    VERDICT: partial. {prefix_tok:,} tokens cache; {stranded:,} do not.")
 
-    recoverable = stranded
-    gain = recoverable / 1e6 * P.MODELS["big"][0] * (1 - P.CACHE_READ)
+    # In the BROKEN case nothing caches at all, so a reorder recovers the
+    # WHOLE stable block -- not just the part sitting after the variable.
+    # Crediting only `stranded` understated any template whose variable sits
+    # late: a 2,000-token prefix broken at token 1,000 was scored at half.
+    recoverable = (prefix_tok + stranded) if prefix_tok < P.CACHE_MIN else stranded
+    rate = P.MODELS[model_key][0] if model_key in P.MODELS else P.MODELS["big"][0]
+    gain = recoverable / 1e6 * rate * (1 - P.CACHE_READ)
     out(f"    FIX: move {{{name}}} (and everything else per-request) BELOW the stable")
     out( "         block. Order: system rules, examples, retrieved context, THEN the")
     out( "         variables. Worth "

@@ -38,7 +38,7 @@ import prices as P
 from _harness import money
 
 FIELDS = ["ts", "feature", "model", "in_tok", "cached_in_tok", "out_tok",
-          "batch", "outcome", "ms", "usd"]
+          "batch", "outcome", "ms", "usd", "saved"]
 
 
 class _Call:
@@ -53,10 +53,13 @@ class _Call:
 
     @property
     def usd(self):
-        # cached input is billed at CACHE_READ; uncached input at full rate
-        uncached = max(0, self.in_tok - self.cached_in_tok)
-        return (P.cost(uncached, self.out_tok, self.model, batch=self.batch)
-                + P.cost(self.cached_in_tok * P.CACHE_READ, 0, self.model, batch=self.batch))
+        return P.cost_with_cache(self.in_tok, self.out_tok, self.cached_in_tok,
+                                 self.model, batch=self.batch)
+
+    @property
+    def cache_saved(self):
+        """What this call's cache hits saved, at the model it actually used."""
+        return P.cache_saving(self.cached_in_tok, self.model, batch=self.batch)
 
 
 class Meter:
@@ -77,7 +80,7 @@ class Meter:
                        in_tok=c.in_tok, cached_in_tok=c.cached_in_tok, out_tok=c.out_tok,
                        batch=int(c.batch), outcome=c.outcome,
                        ms=round((time.perf_counter() - t0) * 1000, 1),
-                       usd=round(c.usd, 8))
+                       usd=round(c.usd, 8), saved=round(c.cache_saved, 8))
             self.rows.append(row)
             if self.path:
                 with self.path.open("a", newline="") as f:
@@ -122,8 +125,11 @@ class Meter:
             f"did not solve anything")
         cached = sum(r["cached_in_tok"] for r in self.rows)
         if cached:
+            # summed per row, at each row's OWN model: a hardcoded frontier
+            # rate here overstated the saving on anything routed to a cheap one
+            saved = sum(r["saved"] for r in self.rows)
             out(f"  CACHE: {cached:,} input tokens served at {P.CACHE_READ}x "
-                f"(saved ~{money(cached/1e6*P.MODELS['big'][0]*(1-P.CACHE_READ))})")
+                f"(saved {money(saved)})")
         out(f"  TOTAL: {money(total)} across {len(self.rows):,} calls")
         out("")
 

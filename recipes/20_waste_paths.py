@@ -90,12 +90,26 @@ tokens([("a successful request", IN_TOK, OUT_TOK),
         ("the same request, timed out and retried", IN_TOK * 2, OUT_TOK * 2)])
 
 fixed = good + HARD_FAIL * in_only + 0.25 * (waste_timeout + TIMEOUT * one) + 0.3 * waste_abandon
+
+# The same arithmetic in TOKENS, because fixing waste removes whole billed
+# calls -- this lever genuinely does cut tokens, unlike the price levers.
+_full = IN_TOK + OUT_TOK
+tok_today = ((1 - HARD_FAIL - TIMEOUT - ABANDON) * _full
+             + HARD_FAIL * IN_TOK
+             + TIMEOUT * _full * 2                      # discarded, then retried
+             + ABANDON * (IN_TOK + OUT_TOK * ABANDON_PCT))
+tok_fixed = ((1 - HARD_FAIL - TIMEOUT - ABANDON) * _full
+             + HARD_FAIL * IN_TOK
+             + TIMEOUT * _full * 2 * 0.25
+             + ABANDON * (IN_TOK + OUT_TOK * ABANDON_PCT) * 0.3)
 costs([("as it runs today", blended), ("waste paths fixed", fixed)], volume_per_day=VOL)
 
 saving = (blended - fixed) * VOL * 30
 verdict(f"""
-{pct(blended, fixed):.0f}% off, {money(saving)}/month, with NO quality trade at
-all. There is no accuracy to lose here -- this is work nobody received.
+{pct(blended, fixed):.0f}% off and {pct(tok_today, tok_fixed):.0f}% fewer tokens,
+{money(saving)}/month, with NO quality trade at all. There is no accuracy to
+lose here -- this is work nobody received. Unlike the price levers, fixing
+waste removes whole billed calls, so the token column moves too.
 
 WHAT ACTUALLY FIXES IT:
 - LENGTHEN THE TIMEOUT BEFORE ADDING A RETRY. A timeout that fires on work that
@@ -115,4 +129,4 @@ up as a smaller number on a dashboard. This one shows up as a number that was
 never supposed to be there, and you only find it by instrumenting failures --
 which is recipe 01, again.
 """)
-headline(0.0, -pct(blended, fixed), saving)
+headline(-pct(tok_today, tok_fixed), -pct(blended, fixed), saving)
