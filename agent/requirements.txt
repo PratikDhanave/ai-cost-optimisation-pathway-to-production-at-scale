@@ -1,0 +1,9 @@
+# Opt-in. The recipes in the parent directory need none of this and their CI
+# job installs nothing; that guarantee is deliberate and this file does not
+# change it.
+google-adk>=2.0        # needs Python 3.11+
+
+# Model-agnostic in practice: ADK drives Gemini natively and other providers
+# through LiteLLM. The cost logic does not care which -- it matches on the
+# model string and reports an unrecognised one rather than guessing a rate.
+# litellm>=1.0
