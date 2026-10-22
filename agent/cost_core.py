@@ -92,6 +92,7 @@ _OUT_KEYS = ("candidates_token_count", "output_tokens", "completion_tokens",
              "output_token_count")
 _CACHED_KEYS = ("cached_content_token_count", "cache_read_input_tokens",
                 "cached_tokens", "cache_read_tokens")
+_TOTAL_KEYS = ("total_token_count", "total_tokens")
 
 
 def _dig(obj, keys):
@@ -114,8 +115,9 @@ class Usage:
     error that makes caching look like it did nothing.
     """
     in_tokens: int
-    out_tokens: int
+    out_tokens: int               # INCLUDING reasoning you were billed for
     cached_in: int | None = None
+    hidden_out: int = 0           # the reasoning share, for reporting
 
     @property
     def cached_known(self) -> bool:
@@ -123,14 +125,32 @@ class Usage:
 
 
 def read_usage(usage_metadata) -> Usage | None:
-    """Pull a Usage out of whatever shape the backend handed back."""
+    """Pull a Usage out of whatever shape the backend handed back.
+
+    REASONING TOKENS ARE RECONCILED FROM THE TOTAL, and that is not a detail.
+    A live run against a current model returned candidates=7 with
+    thoughts=230: the visible answer was seven tokens and the model had been
+    paid for two hundred and thirty more that are never returned to you.
+    Reading the output field alone understated that turn by 34x.
+
+    Providers disagree about whether reasoning is already inside the output
+    count, so adding a named field would double count on the ones that include
+    it. The reconciliation below is provider-agnostic: whatever the payload
+    says the TOTAL was, minus what it attributed to input and output, is
+    output you were billed for and did not see. Where a provider already
+    includes it the remainder is zero and nothing changes.
+    """
     if usage_metadata is None:
         return None
     i, o = _dig(usage_metadata, _IN_KEYS), _dig(usage_metadata, _OUT_KEYS)
     if i is None and o is None:
         return None
-    return Usage(in_tokens=i or 0, out_tokens=o or 0,
-                 cached_in=_dig(usage_metadata, _CACHED_KEYS))
+    i, o = i or 0, o or 0
+    total = _dig(usage_metadata, _TOTAL_KEYS)
+    hidden = max(0, total - i - o) if total else 0
+    return Usage(in_tokens=i, out_tokens=o + hidden,
+                 cached_in=_dig(usage_metadata, _CACHED_KEYS),
+                 hidden_out=hidden)
 
 
 @dataclass(frozen=True)

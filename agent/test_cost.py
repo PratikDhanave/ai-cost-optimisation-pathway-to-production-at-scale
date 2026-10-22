@@ -101,6 +101,38 @@ class TestUsageExtraction(unittest.TestCase):
         self.assertIsNone(read_usage(None))
 
 
+class TestReasoningTokens(unittest.TestCase):
+    """Found by a live run, not by any offline test.
+
+    A current model returned candidates=7 with thoughts=230: seven visible
+    tokens, and two hundred and thirty more billed as output that are never
+    returned. Reading the output field alone understated the turn 34x.
+    """
+
+    def test_reasoning_is_reconciled_from_the_total(self):
+        u = read_usage({"prompt_token_count": 87, "candidates_token_count": 7,
+                        "thoughts_token_count": 230, "total_token_count": 324})
+        self.assertEqual(u.out_tokens, 237)
+        self.assertEqual(u.hidden_out, 230)
+
+    def test_a_provider_that_already_includes_it_is_not_double_counted(self):
+        u = read_usage({"prompt_tokens": 87, "completion_tokens": 237,
+                        "total_tokens": 324})
+        self.assertEqual(u.out_tokens, 237)
+        self.assertEqual(u.hidden_out, 0)
+
+    def test_no_total_means_no_adjustment(self):
+        u = read_usage({"input_tokens": 87, "output_tokens": 7})
+        self.assertEqual(u.out_tokens, 7)
+        self.assertEqual(u.hidden_out, 0)
+
+    def test_the_cost_difference_is_the_point(self):
+        g = {"prompt_token_count": 87, "candidates_token_count": 7,
+             "thoughts_token_count": 230, "total_token_count": 324}
+        self.assertGreater(price("gemini-3.8-flash", read_usage(g)).usd,
+                           price("gemini-3.8-flash", Usage(87, 7)).usd * 5)
+
+
 class TestToolPruning(unittest.TestCase):
     def test_nothing_is_pruned_before_enough_turns_have_passed(self):
         t = ToolTracker(unused_after=3)

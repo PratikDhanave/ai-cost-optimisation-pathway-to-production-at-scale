@@ -97,6 +97,7 @@ class CostPlugin:
         self.downgrades = 0
         self.stops = 0
         self._last_model: str | None = None
+        self.hidden_out = 0
 
     # --- callbacks ---------------------------------------------------------
     def before_model(self, callback_context=None, llm_request=None):
@@ -135,6 +136,8 @@ class CostPlugin:
             return None
         usage = read_usage(getattr(llm_response, "usage_metadata", None))
         model = getattr(llm_response, "model_version", None) or self._last_model
+        if usage is not None:
+            self.hidden_out += usage.hidden_out
         cost = price(model, usage, rates=self.rates)
         self.budget.add(cost)
         if not cost.known and usage is not None:
@@ -178,6 +181,9 @@ class CostPlugin:
             p = resolve(self._last_model)
             lines.append(f"  model        {self._last_model} "
                          f"({p.name if p else 'UNRECOGNISED - turns not costed'})")
+        if self.hidden_out:
+            lines.append(f"  reasoning    {self.hidden_out:,} output token(s) you "
+                         f"were billed for and never saw")
         if self.pruned:
             lines.append(f"  pruned       {len(set(self.pruned))} tool "
                          f"declaration(s): {', '.join(sorted(set(self.pruned)))}")
