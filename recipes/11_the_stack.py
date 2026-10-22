@@ -12,7 +12,7 @@ do this work in.
 """
 import pathlib, sys, itertools
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, costs, verdict, headline, money, pct
+from _harness import banner, note, costs, verdict, headline, money, pct, scaled
 import prices as P
 from models import STACK, LEVERS, stack_request as request
 
@@ -20,7 +20,7 @@ banner(11, "Compose the levers; stop adding percentages", "composition - why per
 
 PREFIX, HISTORY, TRUNCATED, OUT = (STACK["prefix"], STACK["history"],
                                    STACK["truncated"], STACK["out"])
-VOL = 150_000
+VOL = scaled(150_000)
 
 # The model itself lives in models.py, shared with the visual demo so the two
 # cannot drift. LEVERS is its canonical order.

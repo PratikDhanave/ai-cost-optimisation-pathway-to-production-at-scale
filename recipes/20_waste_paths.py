@@ -21,12 +21,12 @@ Three mechanics, each worse than it looks:
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money, pct
+from _harness import banner, note, tokens, costs, verdict, headline, money, pct, scaled
 import prices as P
 
 banner(20, "Retries, timeouts and abandoned streams", "waste - no quality cost to fix")
 
-IN_TOK, OUT_TOK, VOL = 3_200, 900, 120_000
+IN_TOK, OUT_TOK, VOL = 3_200, 900, scaled(120_000)
 one = P.cost(IN_TOK, OUT_TOK, "big")
 
 # Observed-ish operating conditions. All ASSUMPTIONS -- the point is the shape

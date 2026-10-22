@@ -15,7 +15,7 @@ The three ways it pays nothing, all computed below rather than asserted:
 """
 import pathlib, sys, math
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money
+from _harness import banner, note, tokens, costs, verdict, headline, money, scaled
 import prices as P
 
 banner(5, "Prompt caching and its break-even", "price lever - published provider mechanic")
@@ -52,7 +52,7 @@ def per_request(hits_per_write):
     prefix_total = write_cost + read_cost * hits_per_write
     return (prefix_total / n) + BODY / 1e6 * PIN + P.cost(0, OUT, "big")
 
-VOL = 150_000
+VOL = scaled(150_000)
 costs([("no caching",        P.cost(PREFIX + BODY, OUT, "big")),
        ("1 hit per write (min)", per_request(1)),
        ("9 hits per write",   per_request(9)),

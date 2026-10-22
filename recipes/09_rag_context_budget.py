@@ -8,7 +8,7 @@ falls off a cliff after the first few.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, pct, money
+from _harness import banner, note, tokens, costs, verdict, headline, pct, money, scaled
 import prices as P
 
 banner(9, "Give retrieval a token budget", "structural - retrieval budget")
@@ -30,7 +30,7 @@ only the passages that carry the answer.
 
 tokens(rows)
 
-VOL = 60_000
+VOL = scaled(60_000)
 cs = [(label, P.cost(i, o, "big")) for label, i, o in rows]
 costs(cs, volume_per_day=VOL)
 

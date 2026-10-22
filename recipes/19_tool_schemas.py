@@ -12,7 +12,7 @@ touch the thing you added. Nobody reviews a new tool as a cost change.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money, pct
+from _harness import banner, note, tokens, costs, verdict, headline, money, pct, scaled
 import prices as P
 
 banner(19, "Tool schemas and the per-call tax", "fixed overhead - billed whether used or not")
@@ -22,7 +22,7 @@ banner(19, "Tool schemas and the per-call tax", "fixed overhead - billed whether
 # objects and enums. Treat as the right order of magnitude, not a measurement.
 LIGHT, HEAVY = 100, 1_000
 PROMPT, USER, OUT = 700, 180, 420
-VOL, STEPS = 60_000, 12
+VOL, STEPS = scaled(60_000), 12
 
 def schema_tokens(n_light, n_heavy):
     return n_light * LIGHT + n_heavy * HEAVY

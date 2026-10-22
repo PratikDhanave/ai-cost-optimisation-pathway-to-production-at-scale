@@ -43,6 +43,27 @@ except Exception:
         return n
 
 
+def scaled(default):
+    """A recipe's traffic volume, overridable so the output is about YOUR service.
+
+        VOLUME=500000     python3 recipes/02_prompt_diet.py   # absolute
+        VOLUME_SCALE=0.1  python3 recipes/02_prompt_diet.py   # a tenth of the default
+
+    VOLUME wins if both are set. The per-recipe defaults differ on purpose -- a
+    chat workload and a nightly batch do not run at the same scale -- so the
+    scale factor is usually the more honest knob.
+    """
+    import os
+    try:
+        return int(float(os.environ["VOLUME"]))
+    except (KeyError, ValueError):
+        pass
+    try:
+        return int(default * float(os.environ["VOLUME_SCALE"]))
+    except (KeyError, ValueError):
+        return default
+
+
 def pct(before, after):
     return 0.0 if not before else (1 - after / before) * 100
 

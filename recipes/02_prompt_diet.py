@@ -8,7 +8,7 @@ the second says it once instead of three times.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, count, pct
+from _harness import banner, note, tokens, costs, verdict, headline, count, pct, scaled
 import prices as P
 
 banner(2, "Put the system prompt on a diet", "input side - free, no quality risk")
@@ -57,7 +57,7 @@ Same instructions, {pct(b, a):.0f}% fewer tokens. What came out:
 tokens([("verbose system prompt", b + USER, OUT),
         ("same job, said once",   a + USER, OUT)])
 
-VOL = 150_000
+VOL = scaled(150_000)
 c_before = P.cost(b + USER, OUT, "big")
 c_after  = P.cost(a + USER, OUT, "big")
 costs([("verbose", c_before), ("dieted", c_after)], volume_per_day=VOL)

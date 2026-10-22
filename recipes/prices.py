@@ -12,10 +12,25 @@ result here. Rates move; mechanics have held.
 PRICE_DATE = "2026-10-21"      # when these rates were last checked
 RATES_ARE  = "illustrative"    # never "quoted"
 
+def _env(name, default):
+    """Let a reader price these recipes against their own rate card.
+
+        PRICE_IN=2.50 PRICE_OUT=10 python3 recipes/02_prompt_diet.py
+
+    Every figure in every recipe is recomputed from these, because nothing is
+    hardcoded downstream -- which is the point of putting the rates in one file.
+    """
+    import os
+    try:
+        return float(os.environ[name])
+    except (KeyError, ValueError):
+        return default
+
+
 MODELS = {
-    # name:        (input $/1M, output $/1M)
-    "big":   (3.00, 15.00),
-    "small": (0.80,  4.00),
+    # name:        (input $/1M, output $/1M)   -- override with PRICE_* env vars
+    "big":   (_env("PRICE_IN",       3.00), _env("PRICE_OUT",       15.00)),
+    "small": (_env("PRICE_IN_SMALL", 0.80), _env("PRICE_OUT_SMALL",  4.00)),
 }
 
 # Output costs 5x input on both tiers. That ratio, not the absolute rate, is why

@@ -12,12 +12,12 @@ will tell you that you did.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money, pct
+from _harness import banner, note, tokens, costs, verdict, headline, money, pct, scaled
 import prices as P
 
 banner(17, "Semantic caching and the wrong-answer tax", "price lever - with a correctness cost")
 
-IN_TOK, OUT_TOK, VOL = 2_100, 480, 90_000
+IN_TOK, OUT_TOK, VOL = 2_100, 480, scaled(90_000)
 EMBED_PER_REQ = 0.0000012      # one embedding call to look the question up
 
 full = P.cost(IN_TOK, OUT_TOK, "big")

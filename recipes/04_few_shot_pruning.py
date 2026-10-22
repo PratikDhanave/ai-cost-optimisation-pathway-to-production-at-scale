@@ -7,7 +7,7 @@ every request and they are the single most common source of a bloated prompt.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, count, pct, money
+from _harness import banner, note, tokens, costs, verdict, headline, count, pct, money, scaled
 import prices as P
 
 banner(4, "Prune the few-shot examples", "input side - trades accuracy for tokens")
@@ -38,7 +38,7 @@ Four prompts, same classifier, same task. Only the example count changes.
 
 tokens(rows)
 
-VOL = 150_000
+VOL = scaled(150_000)
 cs = [(label, P.cost(i, o, "big")) for label, i, o in rows]
 costs(cs, volume_per_day=VOL)
 

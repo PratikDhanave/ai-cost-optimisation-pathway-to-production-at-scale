@@ -8,7 +8,7 @@ because the prose feels like quality.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, count, pct, money
+from _harness import banner, note, tokens, costs, verdict, headline, count, pct, money, scaled
 import prices as P
 
 banner(3, "Shape the output, not just the input", "output side - where the money is")
@@ -38,7 +38,7 @@ three -- only the instruction about how to answer changed.
 
 tokens(rows)
 
-VOL = 150_000
+VOL = scaled(150_000)
 cs = [(label, P.cost(i, o, "big")) for label, i, o in rows]
 costs(cs, volume_per_day=VOL)
 

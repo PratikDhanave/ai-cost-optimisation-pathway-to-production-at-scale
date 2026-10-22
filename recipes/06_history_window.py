@@ -8,7 +8,7 @@ and we did not ship anything" incidents.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, pct, money
+from _harness import banner, note, tokens, costs, verdict, headline, pct, money, scaled
 import prices as P
 
 banner(6, "Window the conversation history", "structural - stops quadratic growth")
@@ -42,7 +42,7 @@ out_total = OUT * TURNS
 tokens([("full history",    full,     out_total),
         ("last 6 turns",    windowed, out_total)])
 
-CONV_PER_DAY = 8_000
+CONV_PER_DAY = scaled(8_000)
 costs([("full history", P.cost(full, out_total, "big")),
        ("last 6 turns", P.cost(windowed, out_total, "big")),
        ("windowed + cached prefix", P.cost(run(window=6, cache=True), out_total, "big"))],

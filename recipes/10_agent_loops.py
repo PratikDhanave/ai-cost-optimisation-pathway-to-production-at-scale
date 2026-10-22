@@ -9,7 +9,7 @@ interchangeable and do completely different jobs.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, pct, money
+from _harness import banner, note, tokens, costs, verdict, headline, pct, money, scaled
 import prices as P
 
 banner(10, "Agent loops, and the max_tokens trap", "multiplier - and one control that is not a lever")
@@ -41,7 +41,7 @@ tokens([("full trace every step", full,   out),
         ("last 4 steps kept",     pruned, out),
         ("pruned + cached prefix", both,  out)])
 
-RUNS = 5_000
+RUNS = scaled(5_000)
 cs = [("full trace", P.cost(full, out, "big")),
       ("pruned trace", P.cost(pruned, out, "big")),
       ("pruned + cached", P.cost(both, out, "big"))]

@@ -11,7 +11,7 @@ you already decided you needed, and where a 1% trim can be worth 50%.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money, pct
+from _harness import banner, note, tokens, costs, verdict, headline, money, pct, scaled
 import prices as P
 
 banner(16, "The long-context price cliff", "pricing discontinuity - a step, not a slope")
@@ -47,7 +47,7 @@ There is no other lever in this set where the derivative does that.
 # A RAG pipeline whose context grew over time. Most requests are comfortably
 # under; a minority have crept over the line and carry the whole penalty.
 DIST = [(140_000, 0.55), (175_000, 0.26), (195_000, 0.12), (205_000, 0.05), (240_000, 0.02)]
-VOL = 12_000
+VOL = scaled(12_000)
 
 blended = sum(share * P.cost(n, OUT, "big") for n, share in DIST)
 over = sum(share for n, share in DIST if n >= TH)

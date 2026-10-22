@@ -5,6 +5,7 @@
     python3 recipes/run_all.py --summary  # just the table
     python3 recipes/run_all.py --tools    # the four tools' self-demos
     python3 recipes/run_all.py --check    # gate: every recipe and tool runs
+    python3 recipes/run_all.py --menu     # pick one from a list
 
 --check is the demo's only automated guard, and it is deliberately narrow: it
 proves each recipe executes and emits exactly one parseable RESULT line. It does
@@ -31,8 +32,42 @@ def run_tools(show):
     return bad
 
 
+def menu():
+    """Pick a recipe from a list. For a workshop room, or a first read."""
+    items = FILES + TOOLS
+    print("=" * 78)
+    print("  pick one, or 'a' for the summary of all")
+    print("=" * 78)
+    for i, p in enumerate(FILES, 1):
+        doc = p.read_text().split(chr(34) * 3)[1].splitlines()[0]
+        title = doc.split(" - ", 1)[1] if " - " in doc else doc
+        print(f"  {i:>2}  {title.rstrip('.')}")
+    for j, p in enumerate(TOOLS, len(FILES) + 1):
+        print(f"  {j:>2}  tools/{p.name}  (--demo)")
+    print()
+    try:
+        raw = input("  number, or a: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print(); return 0
+    if raw.lower() == "a":
+        return main_with("--summary")
+    if not raw.isdigit() or not (1 <= int(raw) <= len(items)):
+        print("  not a choice on that list"); return 1
+    p = items[int(raw) - 1]
+    args = [sys.executable, str(p)] + (["--demo"] if p in TOOLS else [])
+    print()
+    return subprocess.run(args).returncode
+
+
+def main_with(mode):
+    sys.argv = [sys.argv[0], mode]
+    return main()
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "--menu":
+        return menu()
 
     if mode == "--tools":
         bad = run_tools(show=True)

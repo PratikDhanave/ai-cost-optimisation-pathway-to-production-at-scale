@@ -9,13 +9,13 @@ routing estimate leaves out.
 """
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, money
+from _harness import banner, note, tokens, costs, verdict, headline, money, scaled
 import prices as P
 
 banner(8, "Route by difficulty, with a cascade", "price lever - with an escalation cost")
 
 IN_TOK, OUT_TOK = 1_800, 400
-VOL = 200_000
+VOL = scaled(200_000)
 
 big   = P.cost(IN_TOK, OUT_TOK, "big")
 small = P.cost(IN_TOK, OUT_TOK, "small")

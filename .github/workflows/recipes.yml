@@ -5,6 +5,20 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      recipe:
+        description: "Recipe number to run (01-21), or 'all' for the summary"
+        default: "all"
+        required: true
+      volume:
+        description: "Requests per day. Blank uses each recipe's own default."
+        required: false
+      price_in:
+        description: "Input $/1M for the big model. Blank uses 3.00."
+        required: false
+      price_out:
+        description: "Output $/1M for the big model. Blank uses 15.00."
+        required: false
 
 jobs:
   check:
@@ -14,6 +28,37 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      # No install step on purpose: these run on the standard library alone.
+
+      # No install step, on purpose: these run on the standard library alone.
       # If this job ever needs a dependency, that is a regression.
-      - run: python3 run_all.py --check
+      - name: Run
+        env:
+          VOLUME: ${{ github.event.inputs.volume }}
+          PRICE_IN: ${{ github.event.inputs.price_in }}
+          PRICE_OUT: ${{ github.event.inputs.price_out }}
+        run: |
+          R="${{ github.event.inputs.recipe }}"
+          if [ -z "$R" ] || [ "$R" = "all" ]; then
+            python3 run_all.py --check | tee out.txt
+          else
+            F=$(ls recipes/${R}_*.py 2>/dev/null | head -1)
+            [ -n "$F" ] || { echo "No recipe numbered $R"; exit 1; }
+            python3 "$F" | tee out.txt
+          fi
+
+      # Render the output in the Actions summary, so nobody has to open a log.
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo "## Recipe output"
+            [ -n "$VOLUME$PRICE_IN$PRICE_OUT" ] && echo "Overrides: VOLUME=$VOLUME PRICE_IN=$PRICE_IN PRICE_OUT=$PRICE_OUT"
+            echo
+            echo '```'
+            cat out.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VOLUME: ${{ github.event.inputs.volume }}
+          PRICE_IN: ${{ github.event.inputs.price_in }}
+          PRICE_OUT: ${{ github.event.inputs.price_out }}

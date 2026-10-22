@@ -9,12 +9,45 @@ only -- `tiktoken` is used if it happens to be importable, otherwise a vendored
 estimator runs and the banner says which.
 
 ```bash
-python3 run_all.py                        # every recipe, full output
+python3 run_all.py --menu                 # pick one from a list
 python3 run_all.py --summary              # the table below
 python3 run_all.py --check                # CI gate: every recipe runs and reports
 python3 recipes/05_cache_breakeven.py     # or run any one on its own
 python3 tools/meter.py --demo             # each tool carries a --demo
 ```
+
+### Run it against your own numbers
+
+Nothing downstream is hardcoded, so overriding the rates or the volume
+recomputes every figure in every recipe:
+
+```bash
+VOLUME=500000 python3 recipes/02_prompt_diet.py          # your traffic
+VOLUME_SCALE=0.1 python3 run_all.py --summary            # a tenth of the defaults
+PRICE_IN=2.50 PRICE_OUT=10 python3 run_all.py --summary  # your rate card
+```
+
+`VOLUME` sets an absolute requests-per-day; `VOLUME_SCALE` multiplies each
+recipe's own default. The defaults differ per recipe on purpose -- a chat
+workload and a nightly batch do not run at the same scale -- so the scale
+factor is usually the more honest knob. Rates: `PRICE_IN`, `PRICE_OUT`,
+`PRICE_IN_SMALL`, `PRICE_OUT_SMALL`.
+
+### Three ways to run it without installing anything
+
+- **Codespaces.** Open the repo, press `.` or use the Code button -> Codespaces.
+  A container with Python is ready and the menu opens on attach.
+- **From the Actions tab.** The `recipes` workflow has a **Run workflow** button
+  that takes a recipe number, a volume and a rate card. The output is rendered
+  in the run summary, so there is no log to dig through.
+- **The browser demos.** `demos/` holds three self-contained pages -- no
+  network, no build step. Open them straight from a clone:
+
+| | |
+|---|---|
+| [`demos/index.html`](demos/index.html) | A year of one team's bill against the counterfactual, efficiency and growth indexed to a common base, and the self-hosting staircase. |
+| [`demos/playground.html`](demos/playground.html) | A live burn meter, a playable lever game where the wrong order scores worse, a cost-incident mystery, and a museum of four optimisations where two quietly cost money. |
+| [`demos/flow.html`](demos/flow.html) | Requests animating through the levers. **Parcel width is tokens, coins are cost** -- drawn apart because they are different quantities. Switch on the router and the parcels do not change while the coins halve. |
 
 ---
 

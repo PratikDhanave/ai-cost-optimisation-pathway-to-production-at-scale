@@ -1,0 +1,10 @@
+{
+  "name": "LLM cost recipes",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postAttachCommand": "python3 run_all.py --menu",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  }
+}

@@ -7,7 +7,7 @@ request is the wrong number to run a service on.
 """
 import pathlib, sys, statistics
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from _harness import banner, note, tokens, costs, verdict, headline, count, money
+from _harness import banner, note, tokens, costs, verdict, headline, count, money, scaled
 import prices as P
 
 banner(1, "Tokens are the unit", "measure first - nothing is optimised here")
@@ -38,7 +38,7 @@ reply         {out_t:>5} tokens   (billed at {P.OUTPUT_PREMIUM:.0f}x the input r
 
 tokens([("one request", in_t, out_t)])
 
-VOL = 150_000   # requests/day -- the scale at which a per-request rounding error becomes a budget line
+VOL = scaled(150_000)   # requests/day -- the scale at which a per-request rounding error becomes a budget line
 costs([("big model",   P.cost(in_t, out_t, "big")),
        ("small model", P.cost(in_t, out_t, "small"))], volume_per_day=VOL)
 
