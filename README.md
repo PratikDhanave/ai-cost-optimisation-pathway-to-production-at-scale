@@ -41,7 +41,18 @@ factor is usually the more honest knob. Rates: `PRICE_IN`, `PRICE_OUT`,
   that takes a recipe number, a volume and a rate card. The output is rendered
   in the run summary, so there is no log to dig through.
 - **The browser demos.** `demos/` holds three self-contained pages -- no
-  network, no build step. Open them straight from a clone:
+  network, no build step.
+
+  **GitHub shows these as source, not as pages.** They are static HTML, so the
+  file view renders the markup. To actually see them, either open a Codespace
+  (it serves `demos/` on port 8000 and offers to open it), or from a clone:
+
+  ```bash
+  open demos/playground.html            # macOS - no server needed
+  xdg-open demos/playground.html        # Linux
+  python3 -m http.server --directory demos   # or serve them all at :8000
+  ```
+
 
 | | |
 |---|---|
